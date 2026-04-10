@@ -38,3 +38,15 @@ logs/
 *.tmp
 *.temp
 .cache/
+
+# Uploads
+uploads/
+
+# Test coverage
+coverage/
+
+# Turbo
+.turbo/
+
+# TypeScript
+*.tsbuildinfo

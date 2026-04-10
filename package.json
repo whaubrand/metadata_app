@@ -1,0 +1,24 @@
+{
+  "name": "metadata-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered metadata generation tool for micro-businesses and creators",
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "api": "pnpm --filter @metadata-app/api dev",
+    "web": "pnpm --filter @metadata-app/web dev"
+  },
+  "keywords": [
+    "metadata",
+    "ai",
+    "seo",
+    "image"
+  ],
+  "author": "whaubrand",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
