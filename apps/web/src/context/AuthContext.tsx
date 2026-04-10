@@ -68,6 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
+    // Clear all session data
+    sessionStorage.clear();
   };
 
   return (

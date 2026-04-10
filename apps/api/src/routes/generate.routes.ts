@@ -18,10 +18,17 @@ export async function generateRoutes(fastify: FastifyInstance) {
         const userId = authRequest.user.id;
 
         // Validate input
-        const { imageUrl, contextInput } = generateMetadataSchema.parse(request.body);
+        const { filename, contextInput } = generateMetadataSchema.parse(request.body);
 
-        // Generate metadata using OpenAI
-        const metadata = await OpenAIService.generateMetadata(imageUrl, contextInput);
+        // Generate metadata using OpenAI (or mock if no API key)
+        const metadata = await OpenAIService.generateMetadata(filename, contextInput);
+
+        // Build image URL for storage
+        const protocol = request.protocol;
+        const host = request.hostname;
+        const port = request.port ? `:${request.port}` : '';
+        const baseUrl = `${protocol}://${host}${port}`;
+        const imageUrl = `${baseUrl}/uploads/${filename}`;
 
         // Save to database
         const savedResult = await MetadataService.saveMetadata(

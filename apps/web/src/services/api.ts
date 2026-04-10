@@ -67,9 +67,9 @@ export const uploadApi = {
 
 // Generate API
 export const generateApi = {
-  generate: async (imageUrl: string, contextInput: string) => {
+  generate: async (filename: string, contextInput: string) => {
     const response = await api.post<ApiResponse<MetadataResult>>('/api/generate', {
-      imageUrl,
+      filename,
       contextInput,
     });
     return response.data;

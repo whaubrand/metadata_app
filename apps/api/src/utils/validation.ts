@@ -13,7 +13,7 @@ export const loginSchema = z.object({
 
 // Metadata generation validation schema
 export const generateMetadataSchema = z.object({
-  imageUrl: z.string().url('Invalid image URL'),
+  filename: z.string().min(1, 'Filename is required'),
   contextInput: z.string().min(1, 'Context input is required').max(500, 'Context input too long'),
 });
 

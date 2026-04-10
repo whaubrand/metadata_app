@@ -1,8 +1,10 @@
-import { useState, FormEvent, ChangeEvent } from 'react';
+import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { uploadApi, generateApi } from '../services/api';
 import type { MetadataResult } from '../types';
+
+const SESSION_KEY = 'generate-page-state';
 
 export function GeneratePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -12,8 +14,38 @@ export function GeneratePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [uploadedImageUrl, setUploadedImageUrl] = useState('');
+  const [uploadedFilename, setUploadedFilename] = useState('');
   const [result, setResult] = useState<MetadataResult | null>(null);
   const navigate = useNavigate();
+
+  // Load state from sessionStorage on mount
+  useEffect(() => {
+    const savedState = sessionStorage.getItem(SESSION_KEY);
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.uploadedImageUrl) setUploadedImageUrl(state.uploadedImageUrl);
+        if (state.uploadedFilename) setUploadedFilename(state.uploadedFilename);
+        if (state.contextInput) setContextInput(state.contextInput);
+        if (state.result) setResult(state.result);
+        if (state.previewUrl) setPreviewUrl(state.previewUrl);
+      } catch (err) {
+        console.error('Failed to load session state', err);
+      }
+    }
+  }, []);
+
+  // Save state to sessionStorage whenever it changes
+  useEffect(() => {
+    const state = {
+      uploadedImageUrl,
+      uploadedFilename,
+      contextInput,
+      result,
+      previewUrl,
+    };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+  }, [uploadedImageUrl, uploadedFilename, contextInput, result, previewUrl]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,6 +70,7 @@ export function GeneratePage() {
       const response = await uploadApi.uploadImage(selectedFile);
       if (response.success && response.data) {
         setUploadedImageUrl(response.data.url);
+        setUploadedFilename(response.data.filename);
       } else {
         throw new Error(response.error || 'Upload failed');
       }
@@ -51,7 +84,7 @@ export function GeneratePage() {
   const handleGenerate = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!uploadedImageUrl) {
+    if (!uploadedFilename) {
       setError('Please upload an image first');
       return;
     }
@@ -65,7 +98,7 @@ export function GeneratePage() {
     setError('');
 
     try {
-      const response = await generateApi.generate(uploadedImageUrl, contextInput);
+      const response = await generateApi.generate(uploadedFilename, contextInput);
       if (response.success && response.data) {
         setResult(response.data);
       } else {
@@ -80,6 +113,17 @@ export function GeneratePage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const handleStartOver = () => {
+    setSelectedFile(null);
+    setPreviewUrl('');
+    setContextInput('');
+    setUploadedImageUrl('');
+    setUploadedFilename('');
+    setResult(null);
+    setError('');
+    sessionStorage.removeItem(SESSION_KEY);
   };
 
   return (
@@ -107,7 +151,7 @@ export function GeneratePage() {
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-500 transition">
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif,image/avif,image/tiff,image/bmp"
                       onChange={handleFileChange}
                       className="hidden"
                       id="file-upload"
@@ -124,7 +168,7 @@ export function GeneratePage() {
                           <span className="text-4xl mb-2 block">📸</span>
                           <p className="text-gray-600">Click to select an image</p>
                           <p className="text-sm text-gray-500 mt-1">
-                            JPEG, PNG, WebP, GIF (max 10MB)
+                            JPEG, PNG, WebP, GIF, HEIC, AVIF, TIFF, BMP (max 10MB)
                           </p>
                         </div>
                       )}
@@ -142,8 +186,17 @@ export function GeneratePage() {
                   )}
 
                   {uploadedImageUrl && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                      <p className="text-sm text-green-700">✓ Image uploaded successfully</p>
+                    <div className="space-y-2">
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-sm text-green-700">✓ Image uploaded successfully</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleStartOver}
+                        className="w-full text-sm text-gray-600 hover:text-gray-800 py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50 transition"
+                      >
+                        🔄 Start Over (New Image)
+                      </button>
                     </div>
                   )}
                 </div>
@@ -158,13 +211,12 @@ export function GeneratePage() {
                     <textarea
                       value={contextInput}
                       onChange={(e) => setContextInput(e.target.value)}
-                      placeholder="Describe the image briefly (e.g., 'Product photo of wireless headphones on a desk')"
+                      placeholder="Describe the image briefly (e.g., 'Product photo of wireless headphones on a desk' or 'Toote pilt juhtmevabadest kõrvaklappidest laual')"
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition h-32 resize-none"
                       maxLength={500}
-                      disabled={!uploadedImageUrl}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      {contextInput.length}/500 characters
+                      {contextInput.length}/500 characters {!uploadedImageUrl && '(upload image first)'}
                     </p>
                   </div>
 
@@ -178,6 +230,8 @@ export function GeneratePage() {
                         <span className="animate-spin mr-2">⚙️</span>
                         Generating with AI...
                       </span>
+                    ) : result ? (
+                      '🔄 Regenerate with New Context'
                     ) : (
                       '✨ Generate Metadata'
                     )}
@@ -202,23 +256,23 @@ export function GeneratePage() {
 
                   <div className="space-y-4">
                     <ResultField
-                      label="SEO Title"
-                      value={result.seoTitle}
-                      onCopy={copyToClipboard}
-                    />
-                    <ResultField
-                      label="Meta Description"
-                      value={result.metaDescription}
-                      onCopy={copyToClipboard}
-                    />
-                    <ResultField
                       label="Alt Text"
                       value={result.altText}
                       onCopy={copyToClipboard}
                     />
                     <ResultField
+                      label="SEO Title"
+                      value={result.seoTitle}
+                      onCopy={copyToClipboard}
+                    />
+                    <ResultField
                       label="Social Caption"
                       value={result.socialCaption}
+                      onCopy={copyToClipboard}
+                    />
+                    <ResultField
+                      label="Meta Description"
+                      value={result.metaDescription}
                       onCopy={copyToClipboard}
                     />
 
