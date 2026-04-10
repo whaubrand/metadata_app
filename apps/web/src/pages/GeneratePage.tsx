@@ -1,4 +1,5 @@
-import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import type { FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { uploadApi, generateApi } from '../services/api';
