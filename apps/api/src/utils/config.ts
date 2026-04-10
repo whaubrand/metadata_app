@@ -35,7 +35,7 @@ export function validateConfig() {
     process.exit(1);
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn('⚠️  OPENAI_API_KEY not set — using mock metadata generation');
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn('⚠️  GEMINI_API_KEY not set — using mock metadata generation');
   }
 }

@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "Bash(psql:*)",
+      "Bash(winget:*)",
+      "Bash(sc query:*)",
+      "Bash(export PATH=\"/c/Program Files/PostgreSQL/17/bin:$PATH\":*)",
+      "Bash(createdb:*)",
+      "Bash(PGPASSWORD=postgres psql:*)",
+      "Bash(node:*)",
+      "Bash(pnpm prisma migrate dev:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm rebuild:*)",
+      "Bash(pnpm prisma generate:*)",
+      "Bash(pnpm dev)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm config set:*)",
+      "Bash(npm run install:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx prisma:*)"
+    ]
+  }
+}

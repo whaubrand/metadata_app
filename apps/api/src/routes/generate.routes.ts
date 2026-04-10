@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authenticate } from '../middleware/auth.middleware';
-import { OpenAIService } from '../services/openai.service';
+import { GeminiService } from '../services/gemini.service';
 import { MetadataService } from '../services/metadata.service';
 import { generateMetadataSchema } from '../utils/validation';
 import { AuthenticatedRequest } from '../types';
@@ -32,8 +32,8 @@ export async function generateRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Generate metadata using OpenAI (or mock if no API key)
-        const metadata = await OpenAIService.generateMetadata(filename, contextInput);
+        // Generate metadata using Gemini (or mock if no API key)
+        const metadata = await GeminiService.generateMetadata(filename, contextInput);
 
         // Build image URL for storage
         const protocol = request.protocol;
