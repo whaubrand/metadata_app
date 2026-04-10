@@ -46,6 +46,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
           message: 'File uploaded successfully',
         });
       } catch (error) {
+        console.error('Upload error:', error);
         if (error instanceof Error) {
           return reply.status(400).send({
             success: false,

@@ -8,32 +8,52 @@ import { config } from '../utils/config';
 import sharp from 'sharp';
 
 export class UploadService {
-  // Allowed image MIME types (broad support)
-  private static readonly ALLOWED_TYPES = [
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'image/webp',
-    'image/gif',
-    'image/heic',
-    'image/heif',
-    'image/avif',
-    'image/tiff',
-    'image/bmp',
+  // Allowed image file extensions (more reliable than MIME types)
+  private static readonly ALLOWED_EXTENSIONS = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.gif',
+    '.heic',
+    '.heif',
+    '.avif',
+    '.tiff',
+    '.tif',
+    '.bmp',
   ];
 
-  // Formats that need normalization to JPEG
-  private static readonly NORMALIZE_TO_JPEG = [
-    'image/heic',
-    'image/heif',
-    'image/avif',
-    'image/tiff',
-    'image/bmp',
+  // Extensions that need normalization to JPEG
+  private static readonly NORMALIZE_EXTENSIONS = [
+    '.heic',
+    '.heif',
+    '.avif',
+    '.tiff',
+    '.tif',
+    '.bmp',
   ];
 
-  // Validate file type
-  static isValidImageType(mimetype: string): boolean {
-    return this.ALLOWED_TYPES.includes(mimetype);
+  // Validate file extension
+  static isValidImageExtension(filename: string): boolean {
+    const ext = path.extname(filename).toLowerCase();
+    return this.ALLOWED_EXTENSIONS.includes(ext);
+  }
+
+  // Validate file is actually a readable image using sharp
+  static async isValidImageFile(filepath: string, filename: string): Promise<boolean> {
+    try {
+      const metadata = await sharp(filepath).metadata();
+      return metadata.format !== undefined;
+    } catch (error) {
+      // HEIC/HEIF might not be supported by sharp on Windows
+      // Accept them based on extension only
+      const ext = path.extname(filename).toLowerCase();
+      if (['.heic', '.heif'].includes(ext)) {
+        console.log(`⚠️  HEIC/HEIF format detected - sharp support not available, accepting based on extension`);
+        return true;
+      }
+      return false;
+    }
   }
 
   // Generate unique filename
@@ -56,26 +76,52 @@ export class UploadService {
   // Normalize image format (convert complex formats to JPEG/PNG)
   static async normalizeImage(
     inputPath: string,
-    mimetype: string
+    filename: string
   ): Promise<{ path: string; mimetype: string }> {
-    // If format needs normalization, convert to JPEG
-    if (this.NORMALIZE_TO_JPEG.includes(mimetype)) {
-      const outputPath = inputPath.replace(path.extname(inputPath), '.jpg');
+    const ext = path.extname(filename).toLowerCase();
 
-      await sharp(inputPath)
-        .jpeg({ quality: 85, mozjpeg: true })
-        .toFile(outputPath);
+    // If format needs normalization, try to convert to JPEG
+    if (this.NORMALIZE_EXTENSIONS.includes(ext)) {
+      try {
+        const outputPath = inputPath.replace(path.extname(inputPath), '.jpg');
 
-      // Delete original file
-      await fs.unlink(inputPath);
+        await sharp(inputPath)
+          .jpeg({ quality: 85, mozjpeg: true })
+          .toFile(outputPath);
 
-      return {
-        path: outputPath,
-        mimetype: 'image/jpeg',
-      };
+        // Delete original file
+        await fs.unlink(inputPath);
+
+        return {
+          path: outputPath,
+          mimetype: 'image/jpeg',
+        };
+      } catch (error) {
+        // If normalization fails (e.g., HEIC not supported), keep original
+        console.log(`⚠️  Could not normalize ${ext} format, keeping original file`);
+
+        // Determine mimetype from extension
+        let mimetype = 'image/jpeg';
+        if (ext === '.heic') mimetype = 'image/heic';
+        else if (ext === '.heif') mimetype = 'image/heif';
+        else if (ext === '.avif') mimetype = 'image/avif';
+        else if (ext === '.tiff' || ext === '.tif') mimetype = 'image/tiff';
+        else if (ext === '.bmp') mimetype = 'image/bmp';
+
+        return {
+          path: inputPath,
+          mimetype,
+        };
+      }
     }
 
     // Keep PNG, WebP, GIF, JPEG as-is (web-friendly formats)
+    // Determine mimetype from extension
+    let mimetype = 'image/jpeg';
+    if (ext === '.png') mimetype = 'image/png';
+    else if (ext === '.webp') mimetype = 'image/webp';
+    else if (ext === '.gif') mimetype = 'image/gif';
+
     return {
       path: inputPath,
       mimetype,
@@ -89,25 +135,35 @@ export class UploadService {
     mimetype: string;
     size: number;
   }> {
-    // Validate file type
-    if (!this.isValidImageType(file.mimetype)) {
+    // Validate file extension (more reliable than MIME type)
+    if (!this.isValidImageExtension(file.filename)) {
       throw new Error(
-        'Invalid file type. Supported formats: JPEG, PNG, WebP, GIF, HEIC, HEIF, AVIF, TIFF, BMP'
+        'Invalid file extension. Supported formats: JPEG, PNG, WebP, GIF, HEIC, HEIF, AVIF, TIFF, BMP'
       );
     }
 
     // Ensure upload directory exists
     await this.ensureUploadDir();
 
-    // Generate unique filename
+    // Generate unique filename (preserves original extension)
     const tempFilename = this.generateFilename(file.filename);
     const tempFilepath = path.join(config.uploadDir, tempFilename);
 
     // Save file temporarily
     await pipeline(file.file, createWriteStream(tempFilepath));
 
+    // Validate file is actually a readable image
+    const isValidImage = await this.isValidImageFile(tempFilepath, file.filename);
+    if (!isValidImage) {
+      // Clean up invalid file
+      await fs.unlink(tempFilepath);
+      throw new Error(
+        'File is not a valid image or is corrupted. Please upload a valid image file.'
+      );
+    }
+
     // Normalize image format if needed
-    const normalized = await this.normalizeImage(tempFilepath, file.mimetype);
+    const normalized = await this.normalizeImage(tempFilepath, file.filename);
 
     // Get final filename from normalized path
     const finalFilename = path.basename(normalized.path);

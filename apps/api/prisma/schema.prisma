@@ -42,17 +42,18 @@ model Image {
 
 // Metadata Result model
 model MetadataResult {
-  id                  String   @id @default(uuid())
-  userId              String   @map("user_id")
-  imageUrl            String   @map("image_url")
-  contextInput        String   @map("context_input")
-  seoTitle            String   @map("seo_title")
-  metaDescription     String   @map("meta_description")
-  altText             String   @map("alt_text")
-  socialCaption       String   @map("social_caption")
-  recommendedChannel  String   @map("recommended_channel")
-  channelExplanation  String   @map("channel_explanation")
-  createdAt           DateTime @default(now()) @map("created_at")
+  id                   String   @id @default(uuid())
+  userId               String   @map("user_id")
+  imageUrl             String   @map("image_url")
+  contextInput         String   @map("context_input")
+  suggestedFilename    String   @map("suggested_filename")
+  title                String
+  altText              String   @map("alt_text")
+  caption              String
+  description          String
+  seoKeywords          String   @map("seo_keywords")
+  clarifyingQuestions  String   @map("clarifying_questions")
+  createdAt            DateTime @default(now()) @map("created_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-import path from 'path';
 
 // Load environment variables
 dotenv.config();
@@ -11,8 +10,8 @@ export const config = {
   // JWT
   jwtSecret: process.env.JWT_SECRET || 'change-this-secret',
 
-  // OpenAI
-  openaiApiKey: process.env.OPENAI_API_KEY || '',
+  // Gemini
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
 
   // Server
   port: parseInt(process.env.PORT || '3000', 10),
@@ -27,12 +26,16 @@ export const config = {
 
 // Validate required environment variables
 export function validateConfig() {
-  const requiredVars = ['DATABASE_URL', 'JWT_SECRET', 'OPENAI_API_KEY'];
+  const requiredVars = ['DATABASE_URL', 'JWT_SECRET'];
   const missingVars = requiredVars.filter((varName) => !process.env[varName]);
 
   if (missingVars.length > 0) {
     console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
     console.error('Please check your .env file');
     process.exit(1);
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('⚠️  OPENAI_API_KEY not set — using mock metadata generation');
   }
 }

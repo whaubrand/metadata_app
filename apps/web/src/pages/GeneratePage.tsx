@@ -29,21 +29,26 @@ export function GeneratePage() {
         if (state.uploadedFilename) setUploadedFilename(state.uploadedFilename);
         if (state.contextInput) setContextInput(state.contextInput);
         if (state.result) setResult(state.result);
-        if (state.previewUrl) setPreviewUrl(state.previewUrl);
+        // Blob URLs (blob:) don't survive page reloads — use uploadedImageUrl as fallback preview
+        if (state.previewUrl && !state.previewUrl.startsWith('blob:')) {
+          setPreviewUrl(state.previewUrl);
+        } else if (state.uploadedImageUrl) {
+          setPreviewUrl(state.uploadedImageUrl);
+        }
       } catch (err) {
         console.error('Failed to load session state', err);
       }
     }
   }, []);
 
-  // Save state to sessionStorage whenever it changes
+  // Save state to sessionStorage whenever it changes (don't persist blob URLs)
   useEffect(() => {
     const state = {
       uploadedImageUrl,
       uploadedFilename,
       contextInput,
       result,
-      previewUrl,
+      previewUrl: previewUrl.startsWith('blob:') ? '' : previewUrl,
     };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
   }, [uploadedImageUrl, uploadedFilename, contextInput, result, previewUrl]);
@@ -51,8 +56,11 @@ export function GeneratePage() {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
       setError('');
       setResult(null);
     }
@@ -117,8 +125,11 @@ export function GeneratePage() {
   };
 
   const handleStartOver = () => {
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return '';
+    });
     setSelectedFile(null);
-    setPreviewUrl('');
     setContextInput('');
     setUploadedImageUrl('');
     setUploadedFilename('');
@@ -257,39 +268,49 @@ export function GeneratePage() {
 
                   <div className="space-y-4">
                     <ResultField
-                      label="Alt Text"
+                      label="Failinimi"
+                      value={result.suggestedFilename}
+                      onCopy={copyToClipboard}
+                    />
+                    <ResultField
+                      label="Pealkiri"
+                      value={result.title}
+                      onCopy={copyToClipboard}
+                    />
+                    <ResultField
+                      label="Alt-tekst"
                       value={result.altText}
                       onCopy={copyToClipboard}
                     />
                     <ResultField
-                      label="SEO Title"
-                      value={result.seoTitle}
+                      label="Pealdis"
+                      value={result.caption}
                       onCopy={copyToClipboard}
                     />
                     <ResultField
-                      label="Social Caption"
-                      value={result.socialCaption}
+                      label="Kirjeldus"
+                      value={result.description}
                       onCopy={copyToClipboard}
                     />
-                    <ResultField
-                      label="Meta Description"
-                      value={result.metaDescription}
-                      onCopy={copyToClipboard}
-                    />
-
-                    <div className="pt-4 border-t">
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Recommended Channel
-                      </p>
-                      <div className="bg-indigo-50 rounded-md p-3">
-                        <p className="font-semibold text-indigo-900">
-                          {result.recommendedChannel}
+                    {result.seoKeywords && (
+                      <ResultField
+                        label="SEO märksõnad"
+                        value={result.seoKeywords}
+                        onCopy={copyToClipboard}
+                      />
+                    )}
+                    {result.clarifyingQuestions && (
+                      <div className="pt-4 border-t">
+                        <p className="text-sm font-medium text-amber-700 mb-2">
+                          Täpsustavad küsimused
                         </p>
-                        <p className="text-sm text-indigo-700 mt-1">
-                          {result.channelExplanation}
-                        </p>
+                        <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                          <p className="text-sm text-amber-900">
+                            {result.clarifyingQuestions}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               ) : (

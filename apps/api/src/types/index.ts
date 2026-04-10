@@ -10,12 +10,13 @@ export interface AuthenticatedRequest extends FastifyRequest {
 
 // Metadata generation result
 export interface MetadataResult {
-  seoTitle: string;
-  metaDescription: string;
+  suggestedFilename: string;
+  title: string;
   altText: string;
-  socialCaption: string;
-  recommendedChannel: string;
-  channelExplanation: string;
+  caption: string;
+  description: string;
+  seoKeywords: string;
+  clarifyingQuestions: string;
 }
 
 // API Response types

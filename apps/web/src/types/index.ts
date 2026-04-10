@@ -16,12 +16,13 @@ export interface MetadataResult {
   id: string;
   imageUrl: string;
   contextInput: string;
-  seoTitle: string;
-  metaDescription: string;
+  suggestedFilename: string;
+  title: string;
   altText: string;
-  socialCaption: string;
-  recommendedChannel: string;
-  channelExplanation: string;
+  caption: string;
+  description: string;
+  seoKeywords: string;
+  clarifyingQuestions: string;
   createdAt: string;
 }
 

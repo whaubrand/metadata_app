@@ -154,7 +154,7 @@ function ResultCard({
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              {result.seoTitle}
+              {result.title}
             </h3>
             <p className="text-sm text-gray-500">
               {formatDate(result.createdAt)}
@@ -186,14 +186,12 @@ function ResultCard({
           </div>
           <div className="space-y-2">
             <div>
-              <p className="text-xs font-medium text-gray-500">Context</p>
-              <p className="text-sm text-gray-900">{result.contextInput}</p>
+              <p className="text-xs font-medium text-gray-500">Alt-tekst</p>
+              <p className="text-sm text-gray-900">{result.altText}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500">Recommended Channel</p>
-              <p className="text-sm font-semibold text-indigo-600">
-                {result.recommendedChannel}
-              </p>
+              <p className="text-xs font-medium text-gray-500">Failinimi</p>
+              <p className="text-sm font-mono text-gray-700">{result.suggestedFilename}</p>
             </div>
           </div>
         </div>

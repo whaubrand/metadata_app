@@ -14,12 +14,13 @@ export class MetadataService {
         userId,
         imageUrl,
         contextInput,
-        seoTitle: metadata.seoTitle,
-        metaDescription: metadata.metaDescription,
+        suggestedFilename: metadata.suggestedFilename,
+        title: metadata.title,
         altText: metadata.altText,
-        socialCaption: metadata.socialCaption,
-        recommendedChannel: metadata.recommendedChannel,
-        channelExplanation: metadata.channelExplanation,
+        caption: metadata.caption,
+        description: metadata.description,
+        seoKeywords: metadata.seoKeywords,
+        clarifyingQuestions: metadata.clarifyingQuestions,
       },
     });
 
@@ -82,8 +83,8 @@ export class MetadataService {
       throw new Error('Result not found');
     }
 
-    await prisma.metadataResult.delete({
-      where: { id },
+    await prisma.metadataResult.deleteMany({
+      where: { id, userId },
     });
 
     return { message: 'Result deleted successfully' };

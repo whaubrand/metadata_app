@@ -13,10 +13,10 @@ export async function authRoutes(fastify: FastifyInstance) {
       const user = await AuthService.register(email, password);
 
       // Generate JWT token
-      const token = fastify.jwt.sign({
-        id: user.id,
-        email: user.email,
-      });
+      const token = fastify.jwt.sign(
+        { id: user.id, email: user.email },
+        { expiresIn: '7d' }
+      );
 
       return reply.status(201).send({
         success: true,
@@ -48,10 +48,10 @@ export async function authRoutes(fastify: FastifyInstance) {
       const user = await AuthService.login(email, password);
 
       // Generate JWT token
-      const token = fastify.jwt.sign({
-        id: user.id,
-        email: user.email,
-      });
+      const token = fastify.jwt.sign(
+        { id: user.id, email: user.email },
+        { expiresIn: '7d' }
+      );
 
       return reply.send({
         success: true,

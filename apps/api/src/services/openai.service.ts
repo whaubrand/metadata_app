@@ -26,57 +26,20 @@ export class OpenAIService {
     return `data:${mimetype};base64,${base64Image}`;
   }
 
-  // Detect language from context (improved)
-  private static detectLanguage(text: string): string {
-    const estonianPatterns = [
-      /\b(ja|on|et|see|või|kui|saab|ning|pilt|toode|juures|koos|ilma|üle|alla|välja|sisse)\b/gi,
-      /[õäöü]/i, // Estonian special characters
-    ];
-
-    let estonianScore = 0;
-    for (const pattern of estonianPatterns) {
-      const matches = text.match(pattern);
-      if (matches) estonianScore += matches.length;
-    }
-
-    // If significant Estonian indicators, assume Estonian
-    return estonianScore > 2 ? 'et' : 'en';
-  }
-
-  // Generate natural mock metadata (used when no OpenAI API key)
+  // Generate mock metadata (used when no OpenAI API key)
   private static generateMockMetadata(contextInput: string): MetadataResult {
-    const lang = this.detectLanguage(contextInput);
     const cleanContext = contextInput.trim();
-
-    // Capitalize first letter
-    const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
-
-    if (lang === 'et') {
-      // Extract main subject from context
-      const firstSentence = cleanContext.split(/[.!?]/)[0];
-      const shortContext = firstSentence.length > 60 ? firstSentence.slice(0, 57) + '...' : firstSentence;
-
-      return {
-        altText: capitalize(cleanContext),
-        seoTitle: `${capitalize(shortContext)} | Kvaliteetne pilt`,
-        socialCaption: `${capitalize(cleanContext)} ✨\n\n#kvaliteet #toode #eesti`,
-        metaDescription: `${capitalize(cleanContext)}. Professionaalne pildistus ja kvaliteetne visuaal teie vajadusteks.`,
-        recommendedChannel: 'Instagram',
-        channelExplanation: 'Visuaalne sisu sobib hästi Instagrami',
-      };
-    }
-
-    // English version
-    const firstSentence = cleanContext.split(/[.!?]/)[0];
-    const shortContext = firstSentence.length > 60 ? firstSentence.slice(0, 57) + '...' : firstSentence;
+    const words = cleanContext.toLowerCase().replace(/[äöüõ]/g, (c) => ({ ä: 'a', ö: 'o', ü: 'u', õ: 'o' }[c] ?? c));
+    const slug = words.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 60);
 
     return {
-      altText: capitalize(cleanContext),
-      seoTitle: `${capitalize(shortContext)} | Professional Quality`,
-      socialCaption: `${capitalize(cleanContext)} ✨\n\n#quality #product #professional`,
-      metaDescription: `${capitalize(cleanContext)}. Professional photography and quality visuals for your needs.`,
-      recommendedChannel: 'Instagram',
-      channelExplanation: 'Visual content performs well on Instagram',
+      suggestedFilename: `${slug || 'pilt'}.jpg`,
+      title: cleanContext.split(/\s+/).slice(0, 5).join(' '),
+      altText: cleanContext.charAt(0).toUpperCase() + cleanContext.slice(1) + '.',
+      caption: cleanContext.split(/[.!?]/)[0] + '.',
+      description: cleanContext.charAt(0).toUpperCase() + cleanContext.slice(1) + '.',
+      seoKeywords: '',
+      clarifyingQuestions: '',
     };
   }
 
@@ -99,42 +62,51 @@ export class OpenAIService {
     // Convert image to base64
     const base64Image = await this.convertImageToBase64(filepath);
 
-    const prompt = `You are an expert SEO and social media marketing specialist.
+    const systemPrompt = `Sa oled 8Hertsi (Juhan Vahter) meediafailide metadata koostaja ja eesti keele toimetaja. Kirjutad faktitäpselt, minimalistlikult ja korrektses eesti keeles. Sa ei tohi teha oletusi ega loogikavigu.
 
-Analyze the provided image and context to generate comprehensive, high-quality metadata.
+Eesmärk: Luua iga pildi jaoks WordPressi meediateeki sobiv metadata.
 
-Context: ${contextInput}
+KRIITILISED REEGLID (ära riku):
+1) FAKTIKONTROLL: Ära eelda. Kui mõni fakt pole pildilt ja kontekstist 100% kindel (objektide arv, auto mudel/aasta, materjal, tarkvara, tööetapp), jäta see detail metadata'st välja.
+2) KEEL: Kasuta korrektset eesti keelt. Kontrolli kokku-lahku kirjutamine, käänded, kirjavahemärgid.
+3) MINIMALISM: Väldi ilukõnet ja turunduslikke ülivõrdeid. Kirjelda otse ja faktipõhiselt.
+4) ALT-TEKST: 1 lause. Ütle, mis pildil on. Ära alusta "Pilt sellest…". Ära pane sinna müügijuttu.
+5) PEALKIRI: 3–6 sõna. Kirjeldav, mitte reklaam.
+6) PEALDIS: 1 lühike lause või fraas. Sobib pildi alla.
+7) KIRJELDUS: 2–4 lauset. Ainult kinnitatud faktid: mis on objekt, eesmärk, tööetapp (kui teada), järgmine samm (kui teada).
+8) FAILINIMI: väiketähed, sidekriipsud, ilma täpitähtedeta (ä→a, ö→o, ü→u, õ→o), ilma sulgudeta. Kirjeldav. Lõpeta .jpg-ga.
+9) SEO MÄRKSÕNAD: 3–6 märksõna või fraasi, komadega eraldatud. Ainult asjakohased.
+10) TÄPSUSTAVAD KÜSIMUSED: Kui pilt ja kontekst ei anna mõne olulise fakti kohta piisavat kindlust, lisa kuni 3 täpsustavat küsimust väljale "clarifyingQuestions" (1 string, küsimused eraldatud küsimärgiga). Kui kõik on selge, jäta tühjaks.
 
-IMPORTANT: Generate ALL metadata in the SAME LANGUAGE as the context provided above. If the context is in Estonian, respond in Estonian. If in English, respond in English. Match the language exactly.
-
-Generate the following in JSON format:
-1. seoTitle: A compelling SEO-optimized title (50-60 characters)
-2. metaDescription: An engaging meta description (150-160 characters)
-3. altText: Descriptive alt text for accessibility (100-125 characters)
-4. socialCaption: An engaging social media caption with relevant hashtags (150-200 characters)
-5. recommendedChannel: The best platform to use this content (e.g., "Instagram", "LinkedIn", "Blog post", "Facebook", "Pinterest")
-6. channelExplanation: A brief explanation (50-100 characters) of why this channel is recommended
-
-Respond ONLY with valid JSON matching this structure:
+Vasta AINULT validse JSON-iga, ilma markdown-koodiplokita:
 {
-  "seoTitle": "...",
-  "metaDescription": "...",
-  "altText": "...",
-  "socialCaption": "...",
-  "recommendedChannel": "...",
-  "channelExplanation": "..."
+  "suggestedFilename": "kirjeldav-failinimi.jpg",
+  "title": "3–6 sõna pealkiri",
+  "altText": "Üks lause sellest, mis pildil on.",
+  "caption": "Lühike pealdis.",
+  "description": "2–4 lauset. Ainult kinnitatud faktid.",
+  "seoKeywords": "märksõna1, märksõna2, märksõna3",
+  "clarifyingQuestions": ""
 }`;
+
+    const userPrompt = contextInput.trim()
+      ? `Kontekst kasutajalt: ${contextInput}`
+      : 'Konteksti ei ole antud. Kirjelda ainult seda, mis pildilt on kindlalt näha.';
 
     try {
       const response = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: prompt,
+                text: userPrompt,
               },
               {
                 type: 'image_url',
@@ -145,8 +117,8 @@ Respond ONLY with valid JSON matching this structure:
             ],
           },
         ],
-        max_tokens: 1000,
-        temperature: 0.7,
+        max_tokens: 800,
+        temperature: 0.3,
       });
 
       const content = response.choices[0]?.message?.content;
@@ -155,20 +127,26 @@ Respond ONLY with valid JSON matching this structure:
         throw new Error('No response from OpenAI');
       }
 
-      // Parse JSON response
-      const metadata = JSON.parse(content) as MetadataResult;
+      // Strip markdown code block if present
+      const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
 
-      // Validate response structure
+      // Parse JSON response
+      const metadata = JSON.parse(cleaned) as MetadataResult;
+
+      // Validate required fields
       if (
-        !metadata.seoTitle ||
-        !metadata.metaDescription ||
+        !metadata.suggestedFilename ||
+        !metadata.title ||
         !metadata.altText ||
-        !metadata.socialCaption ||
-        !metadata.recommendedChannel ||
-        !metadata.channelExplanation
+        !metadata.caption ||
+        !metadata.description
       ) {
         throw new Error('Invalid metadata structure from OpenAI');
       }
+
+      // Ensure optional fields exist
+      metadata.seoKeywords = metadata.seoKeywords ?? '';
+      metadata.clarifyingQuestions = metadata.clarifyingQuestions ?? '';
 
       return metadata;
     } catch (error) {

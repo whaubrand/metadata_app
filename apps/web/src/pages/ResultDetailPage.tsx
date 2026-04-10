@@ -114,7 +114,7 @@ export function ResultDetailPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                    {result.seoTitle}
+                    {result.title}
                   </h1>
                   <p className="text-sm text-gray-500">
                     Created {formatDate(result.createdAt)}
@@ -151,45 +151,60 @@ export function ResultDetailPage() {
 
             {/* Metadata Fields */}
             <div className="p-6 space-y-6">
-              <h2 className="text-xl font-semibold mb-4">Generated Metadata</h2>
+              <h2 className="text-xl font-semibold mb-4">WordPress metadata</h2>
 
               <MetadataField
-                label="SEO Title"
-                value={result.seoTitle}
-                description="Optimized title for search engines (50-60 characters)"
+                label="Failinimi"
+                value={result.suggestedFilename}
+                description="Soovituslik failinimi enne üleslaadimist"
                 onCopy={copyToClipboard}
               />
 
               <MetadataField
-                label="Meta Description"
-                value={result.metaDescription}
-                description="Brief description for search results (150-160 characters)"
+                label="Pealkiri"
+                value={result.title}
+                description="Title — WordPress meediateegis"
                 onCopy={copyToClipboard}
               />
 
               <MetadataField
-                label="Alt Text"
+                label="Alt-tekst"
                 value={result.altText}
-                description="Accessible description for screen readers (100-125 characters)"
+                description="Alt text — kirjeldab pildil olevat"
                 onCopy={copyToClipboard}
               />
 
               <MetadataField
-                label="Social Media Caption"
-                value={result.socialCaption}
-                description="Engaging caption for social platforms with hashtags"
+                label="Pealdis"
+                value={result.caption}
+                description="Caption — pildi all kuvatav tekst"
                 onCopy={copyToClipboard}
               />
 
-              <div className="pt-6 border-t">
-                <h3 className="text-lg font-semibold mb-3">Recommended Channel</h3>
-                <div className="bg-indigo-50 rounded-lg p-4">
-                  <p className="text-xl font-bold text-indigo-900 mb-2">
-                    {result.recommendedChannel}
-                  </p>
-                  <p className="text-indigo-700">{result.channelExplanation}</p>
+              <MetadataField
+                label="Kirjeldus"
+                value={result.description}
+                description="Description — pikem kirjeldus meediateegis"
+                onCopy={copyToClipboard}
+              />
+
+              {result.seoKeywords && (
+                <MetadataField
+                  label="SEO märksõnad"
+                  value={result.seoKeywords}
+                  description="Fookus-märksõnad (3–6 tk)"
+                  onCopy={copyToClipboard}
+                />
+              )}
+
+              {result.clarifyingQuestions && (
+                <div className="pt-6 border-t">
+                  <h3 className="text-lg font-semibold mb-3">Täpsustavad küsimused</h3>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p className="text-amber-900">{result.clarifyingQuestions}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

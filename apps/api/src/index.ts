@@ -4,7 +4,7 @@ import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
-import { config } from './utils/config';
+import { config, validateConfig } from './utils/config';
 import { prisma } from './utils/prisma';
 import { authRoutes } from './routes/auth.routes';
 import { uploadRoutes } from './routes/upload.routes';
@@ -66,6 +66,8 @@ async function registerRoutes() {
 
 // Start server
 async function start() {
+  validateConfig();
+
   try {
     await registerPlugins();
     await registerRoutes();
